@@ -1,3 +1,2 @@
 Scrapy>=2.7.1
 attrs>=22.2.0
-selenium>=4.7.2
