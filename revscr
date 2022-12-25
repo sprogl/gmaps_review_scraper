@@ -7,11 +7,15 @@ import argparse
 
 parser = argparse.ArgumentParser()
 parser.add_argument("ludocid", help="cid of the business whose review are to be scraped", type=int)
+parser.add_argument("-o", "--output", help="the CSV file name of the file where the output is stored")
 args = parser.parse_args()
 
 
 if __name__ == "__main__":
     # e.g. ldocid=3435981545910666830
     process = CrawlerProcess()
-    process.crawl(ReviewSpider, ludocid=args.ludocid)
+    if args.output:
+        process.crawl(ReviewSpider, ludocid=args.ludocid, csv_filename=args.output)
+    else:
+        process.crawl(ReviewSpider, ludocid=args.ludocid)
     process.start()
