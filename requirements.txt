@@ -1,2 +1,5 @@
 Scrapy>=2.7.1
 attrs>=22.2.0
+bs4>=0.0.1
+splinter>=0.18.1
+urllib3>=1.26.13
