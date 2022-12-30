@@ -4,6 +4,8 @@ import json
 import csv
 import collections.abc
 import reviews.review
+import spider.exceptions
+from log.logger import logger
 
 class ReviewSpider(scrapy.Spider):
     _url_fragments = ["https://www.google.com/maps/preview/review/listentitiesreviews?pb=!1m1!2y", "!2m1", "!2m2!3s", "!2i10!3e1!4m5!3b1!4b1!5b1!6b1!7b1!5m1!7e81"]
@@ -37,17 +39,22 @@ class ReviewSpider(scrapy.Spider):
         try:
             reviews_raw = json.loads(response.text[5:])[2]
         except TypeError:
-            return
+            raise spider.exceptions.UnexpectedFormat
         if isinstance(reviews_raw, collections.abc.Iterable):
             for rev_raw in reviews_raw:
-                rev_rendered = reviews.review.Rev(rev_raw)
+                try:
+                    rev_rendered = reviews.review.Rev(rev_raw)
+                except IndexError:
+                    raise spider.exceptions.UnexpectedFormat
                 self._writer.writerow(rev_rendered.dict())
                 try:
                     self._id_next_review = rev_raw[61]
                 except IndexError:
+                    logger.debug("scraping finished")
                     return
             return scrapy.http.Request(self.url(), callback=self.parse, dont_filter=True)
         else:
+            logger.debug("scraping finished")
             return
 
     def __del__(self):

@@ -1,20 +1,33 @@
 import bs4
 import splinter
 import urllib.parse
+import ludocid.exceptions
+from log.logger import logger
 
-def cid(search_term, save_search_file=False):
-    url = f"https://www.google.com/search?q={urllib.parse.quote(search_term)}"
+def cid(search_term):
+    url = f"https://www.google.com/search?hl=en&q={urllib.parse.quote(search_term)}"
 
-    browser = splinter.Browser("chrome", headless=True)
+    try:
+        browser = splinter.Browser("firefox", headless=True, incognito=True)
+    except splinter.exceptions.DriverNotFoundError:
+        raise ludocid.exceptions.NoDriver
+
     browser.visit(url)
-    if save_search_file:
-        with open("page.html", "w") as file:
-            file.write(browser.html)
-            file.close()
 
-    browser.find_by_text("Alle ablehnen").click()
-
+    # Click on "Reject all" to reject all cookies
+    try:
+        browser.find_by_id('W0wltc')[0].click()
+    except splinter.exceptions.ElementDoesNotExist:
+        logger.debug("no 'Reject all' button exists")
+    
+    
     soup = bs4.BeautifulSoup(browser.html, 'html.parser')
 
-    a_element = soup.find("a", {"data-rc_q": search_term})
-    return int(a_element["data-rc_ludocids"])
+    browser.quit()
+
+    try:
+        cid = soup.find("a", {"data-rc_q": search_term})["data-rc_ludocids"]
+    except TypeError:
+        raise ludocid.exceptions.BadSearch
+
+    return int(cid)

@@ -4,7 +4,17 @@ import scrapy.crawler
 import spider.spider
 import argparse
 import ludocid.ludocid
-import logging
+import ludocid.exceptions
+from log.logger import logger
+
+class DoubleInput(Exception):
+    def __init__(self):
+        super().__init__("both arguments --search and --ludocid cannot be supplied simultaneously")
+
+class NoInput(Exception):
+    def __init__(self):
+        super().__init__("either the argument --search or --ludocid must be supplied")
+
 
 # e.g. args.search "Aspria Berlin Ku'damm"
 # e.g. ldocid=3435981545910666830
@@ -19,21 +29,23 @@ args = parser.parse_args()
 if __name__ == "__main__":
     if args.ludocid:
         if args.search:
-            logging.error("both arguments --search and --ludocid cannot be supplied simultaneously")
-            quit()
+            logger.error(DoubleInput())
+            raise DoubleInput
         else:
             ludocid = args.ludocid
     elif args.search:
         try:
             cid = ludocid.ludocid.cid(args.search)
-            logging.debug("ludocid={cid}")
-            # specify the exception
-        except TypeError:
-            logging.error("no result found for the specified search term")
-            quit()
+            logger.debug(f"ludocid={cid}")
+        except ludocid.exceptions.NoDriver as NoDriver:
+            logger.error(ludocid.exceptions.NoDriver())
+            raise NoDriver
+        except ludocid.exceptions.BadSearch as BadSearch:
+            logger.error(ludocid.exceptions.BadSearch())
+            raise BadSearch
     else:
-        logging.error("either the argument --search or --ludocid must be supplied")
-        quit()
+        logger.error(NoInput())
+        raise NoInput
 
     process = scrapy.crawler.CrawlerProcess(settings={"REQUEST_FINGERPRINTER_IMPLEMENTATION": "2.7"})
     if args.output:
